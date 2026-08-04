@@ -1,0 +1,27 @@
+{
+  "name": "ots-lib",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./crypto": "./src/crypto.js",
+    "./userNetwork": "./src/userNetwork.js",
+    "./network": "./src/network.js",
+    "./compiler": "./src/compiler.js",
+    "./models": "./src/models.js",
+    "./config": "./src/config.js",
+    "./wallet": "./src/wallet.js",
+    "./format": "./src/format.js",
+    "./*": "./src/*"
+  },
+  "dependencies": {
+    "@noble/curves": "^2.0.1",
+    "@noble/hashes": "^2.0.1",
+    "@noble/secp256k1": "^3.0.0",
+    "@scure/base": "^2.2.0",
+    "@scure/bip32": "^2.2.0",
+    "@scure/bip39": "^2.2.0",
+    "acorn": "^8.16.0"
+  }
+}
