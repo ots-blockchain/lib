@@ -1,7 +1,7 @@
 # @otsblockchain/lib
 
-![NPM Version](https://img.shields.io/npm/v/@otsblockchain/lib)
-![License](https://img.shields.io/npm/l/@otsblockchain/lib)
+[![NPM Version](https://img.shields.io/npm/v/@otsblockchain/lib)](https://www.npmjs.com/package/@otsblockchain/lib)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Official library for interacting with the OTS Blockchain. It provides tools for cryptography, wallet management, networking (P2P), serialization, and smart contract compilation
 
