@@ -32,7 +32,7 @@ Module for user wallet management and transaction creation.
 - `createTransfer(toAddressBase58: string, amountOts: string|number, comment: string, nonce: number)`: Creates a funds transfer transaction.
 - `createStake(amountOts: string|number, nonce: number)`: Creates a staking transaction.
 - `createDeploy(contractCode: string, costOts: string|number, nonce: number)`: Creates a smart contract deployment transaction.
-- `createCall(contractAddressHex: string, amountOts: string|number, args: string, nonce: number)`: Creates a smart contract call transaction.
+- `createCall(contractAddressHex: string, amountOts: string|number, args: string, nonce: number, gasLimitOts?: string|number|bigint)`: Creates a smart contract call transaction.
 
 ---
 
