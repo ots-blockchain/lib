@@ -29,6 +29,9 @@ importers:
       acorn:
         specifier: ^8.16.0
         version: 8.18.0
+      decimal.js:
+        specifier: ^10.6.0
+        version: 10.6.0
 
 packages:
 
@@ -57,6 +60,9 @@ packages:
     engines: {node: '>=0.4.0'}
     hasBin: true
 
+  decimal.js@10.6.0:
+    resolution: {integrity: sha512-YpgQiITW3JXGntzdUmyUR1V812Hn8T1YVXhCu+wO3OpS4eU9l4YdD3qjyiKdV6mvV29zapkMeD390UVEf2lkUg==}
+
 snapshots:
 
   '@noble/curves@2.2.0':
@@ -81,3 +87,5 @@ snapshots:
       '@scure/base': 2.2.0
 
   acorn@8.18.0: {}
+
+  decimal.js@10.6.0: {}
