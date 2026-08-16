@@ -14,17 +14,21 @@ export function compile(jsCode) {
         if (!node) return null;
 
         switch (node.type) {
-            case 'Program':
-                const progBody = [];
+            case 'Program': {
+                const funcDecls = [];
+                const otherStmts = [];
                 node.body.forEach(n => {
                     const res = transform(n);
-                    if (Array.isArray(res) && Array.isArray(res[0])) {
-                        progBody.push(...res); 
-                    } else {
-                        progBody.push(res);
+                    if (n.type === 'FunctionDeclaration') {
+                        funcDecls.push(res);
+                    } else if (Array.isArray(res) && Array.isArray(res[0])) {
+                        otherStmts.push(...res); 
+                    } else if (res !== null) {
+                        otherStmts.push(res);
                     }
                 });
-                return progBody;
+                return [...funcDecls, ...otherStmts];
+            }
 
             case 'FunctionDeclaration':
                 return [
@@ -41,17 +45,21 @@ export function compile(jsCode) {
                     transform(node.body)
                 ];
 
-            case 'BlockStatement':
-                const blockBody = [];
+            case 'BlockStatement': {
+                const funcDecls = [];
+                const otherStmts = [];
                 node.body.forEach(n => {
                     const res = transform(n);
-                    if (Array.isArray(res) && Array.isArray(res[0])) {
-                        blockBody.push(...res);
-                    } else {
-                        blockBody.push(res);
+                    if (n.type === 'FunctionDeclaration') {
+                        funcDecls.push(res);
+                    } else if (Array.isArray(res) && Array.isArray(res[0])) {
+                        otherStmts.push(...res);
+                    } else if (res !== null) {
+                        otherStmts.push(res);
                     }
                 });
-                return { "raw": blockBody };
+                return { "raw": [...funcDecls, ...otherStmts] };
+            }
 
             case 'ExpressionStatement':
                 return transform(node.expression);
@@ -89,11 +97,9 @@ export function compile(jsCode) {
                 const test = transform(node.test);
                 const body = transform(node.body);
 
-                const whileBody = [...body.raw];
-                if (node.update.type === 'UpdateExpression') {
-                    const vName = node.update.argument.name;
-                    const op = node.update.operator === '++' ? 'add' : 'sub';
-                    whileBody.push(["writeVar", vName, [op, ["readVar", vName], 1]]);
+                const whileBody = (body && body.raw) ? [...body.raw] : (Array.isArray(body) ? [...body] : [body]);
+                if (node.update) {
+                    whileBody.push(transform(node.update));
                 }
 
                 return [
@@ -123,10 +129,30 @@ export function compile(jsCode) {
                 return ["readObjectKey", transform(node.object), node.computed ? transform(node.property) : node.property.name];
 
             case 'AssignmentExpression':
-                if (node.left.type === 'MemberExpression') {
-                    return ["writeObjectKey", transform(node.left.object), node.left.computed ? transform(node.left.property) : node.left.property.name, transform(node.right)];
+                if (node.operator === '=') {
+                    if (node.left.type === 'MemberExpression') {
+                        return ["writeObjectKey", transform(node.left.object), node.left.computed ? transform(node.left.property) : node.left.property.name, transform(node.right)];
+                    }
+                    return ["writeVar", node.left.name, transform(node.right)];
+                } else {
+                    const opMap = {
+                        '+=': 'add', '-=': 'sub', '*=': 'mul', '/=': 'div', '%=': 'mod'
+                    };
+                    const op = opMap[node.operator];
+                    if (op) {
+                        if (node.left.type === 'MemberExpression') {
+                            const objTransformed = transform(node.left.object);
+                            const propTransformed = node.left.computed ? transform(node.left.property) : node.left.property.name;
+                            return ["writeObjectKey", objTransformed, propTransformed, [op, ["readObjectKey", objTransformed, propTransformed], transform(node.right)]];
+                        }
+                        return ["writeVar", node.left.name, [op, ["readVar", node.left.name], transform(node.right)]];
+                    }
+                    if (node.left.type === 'MemberExpression') {
+                        return ["writeObjectKey", transform(node.left.object), node.left.computed ? transform(node.left.property) : node.left.property.name, transform(node.right)];
+                    }
+                    return ["writeVar", node.left.name, transform(node.right)];
                 }
-                return ["writeVar", node.left.name, transform(node.right)];
+
             case 'WhileStatement':
                 return [
                     "while",
@@ -137,9 +163,7 @@ export function compile(jsCode) {
                 ];
 
             case 'ArrayExpression':
-                return {
-                    "raw": node.elements.map(transform)
-                };
+                return ["createArray", ...node.elements.map(transform)];
 
             case 'ObjectExpression':
                 const elements = node.properties.map(prop => {
@@ -164,17 +188,21 @@ export function compile(jsCode) {
                 return ["break"];
 
             case 'UpdateExpression':
+                const updateOp = node.operator === '++' ? 'add' : 'sub';
+                if (node.argument.type === 'MemberExpression') {
+                    const obj = transform(node.argument.object);
+                    const prop = node.argument.computed ? transform(node.argument.property) : node.argument.property.name;
+                    return ["writeObjectKey", obj, prop, [updateOp, ["readObjectKey", obj, prop], 1]];
+                }
                 const varName = node.argument.name;
-                const op = node.operator === '++' ? 'add' : 'sub';
-                
                 return [
                     "writeVar", 
                     varName, 
-                    [op, ["readVar", varName], 1]
+                    [updateOp, ["readVar", varName], 1]
                 ];
 
             default:
-                console.log("Unknown node type:", node.type)
+                console.log("Unknown node type:", node.type);
                 return null;
         }
     }
@@ -285,6 +313,8 @@ export function decompile(input) {
                 }
                 case 'createObject':
                     return `{ ${(args[0].raw || []).map(p => decompileNode(p, indent)).join(', ')} }`;
+                case 'createArray':
+                    return '[' + args.map(n => decompileNode(n, indent)).join(', ') + ']';
 
                 case 'add': return `(${decompileNode(args[0], indent)} + ${decompileNode(args[1], indent)})`;
                 case 'sub': return `(${decompileNode(args[0], indent)} - ${decompileNode(args[1], indent)})`;
