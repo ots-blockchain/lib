@@ -136,10 +136,12 @@ class WalletWrapper {
      * @param {string|number} amountOts 
      * @param {string} args 
      * @param {number} nonce 
+     * @param {string|number|bigint} [gasLimitOts=1]
      * @returns {Transaction}
      */
-    createCall(contractAddressHex, amountOts, args, nonce) {
+    createCall(contractAddressHex, amountOts, args, nonce, gasLimitOts = 1) {
         const amountNano = toNanoOts(amountOts);
+        const gasLimitNano = typeof gasLimitOts === 'bigint' ? gasLimitOts : toNanoOts(gasLimitOts || 1);
         // contract address is already hex
 
         const tx = new Transaction({
@@ -147,6 +149,7 @@ class WalletWrapper {
             from: this.publicKey,
             to: contractAddressHex,
             amount: amountNano,
+            gasLimit: gasLimitNano,
             data: args,
             nonce: nonce
         });
