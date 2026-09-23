@@ -45,16 +45,22 @@ class CryptoUtils {
     }
 
     static isValidPublicKey(hexKey) {
+        if (typeof hexKey !== 'string') return false;
+        if (hexKey.length !== 66 && hexKey.length !== 130) return false;
         try {
             secp.Point.fromHex(hexKey);
             return true;
-        } catch (error) {
-            try {
-                return hexToBytes(hexKey).length >= 16;
-            } catch {
-                return false;
-            }
+        } catch {
+            return false;
         }
+    }
+
+    static isValidAddress(hexStr) {
+        if (typeof hexStr !== 'string') return false;
+        if (hexStr.length === 64) {
+            return /^[0-9a-fA-F]{64}$/.test(hexStr);
+        }
+        return CryptoUtils.isValidPublicKey(hexStr);
     }
 
     static serializeWithBigInt(value) {

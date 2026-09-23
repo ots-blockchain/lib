@@ -182,6 +182,10 @@ export class VM {
             return: (value) => ({ type: 'return', value }),
 
             writeFunc: (name, paramNames, body) => {
+                if (!name || typeof name !== 'string' || name.length > consts.VARNAME_LENGTH_LIMIT) throw new Error('Incorrect variable name');
+                if (BLACKLIST.includes(name)) throw new Error('Cannot write blacklisted variable');
+                if (funcs[name] || this.extraFuncs[name]) throw new Error('Cannot overwrite a read-only built-in or host function');
+
                 let params = paramNames;
                 if (paramNames && paramNames.raw) {
                     params = paramNames.raw;
@@ -217,7 +221,18 @@ export class VM {
 
             add: (a, b) => {
                 this.useGas(costs.DEFAULT);
-                if (typeof a === 'string' || typeof b === 'string') {
+                const isANum = isNumeric(a);
+                const isBNum = isNumeric(b);
+                if (isANum && isBNum) {
+                    return toDec(a).add(toDec(b));
+                }
+                if (typeof a === 'string' && typeof b === 'string') {
+                    const res = String(a ?? '') + String(b ?? '');
+                    if (res.length > consts.MAX_STRING_LENGTH) throw new Error("String length limit exceeded");
+                    this.chargeMemory(res.length);
+                    return res;
+                }
+                if (!isANum || !isBNum) {
                     const res = String(a ?? '') + String(b ?? '');
                     if (res.length > consts.MAX_STRING_LENGTH) throw new Error("String length limit exceeded");
                     this.chargeMemory(res.length);

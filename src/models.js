@@ -3,7 +3,7 @@ import CryptoUtils from './crypto.js';
 export class Transaction {
     /**
      * @param {object} params
-     * @param {('transfer' | 'deploy' | 'call' | 'stake')} params.type
+     * @param {('transfer' | 'deploy' | 'call' | 'stake' | 'unstake')} params.type
      * @param {string} params.from
      * @param {string} params.to
      * @param {bigint} params.amount
@@ -57,6 +57,10 @@ export class Transaction {
 
     isValid() {
         if (!this.signature) return false;
+        if (this.amount < 0n) return false;
+        if (this.gasLimit < 0n) return false;
+        if (this.nonce < 0) return false;
+        if (!CryptoUtils.isValidPublicKey(this.from)) return false;
         return CryptoUtils.verify(this.signature, this.getHash(), this.from);
     }
 }

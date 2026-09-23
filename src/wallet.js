@@ -44,10 +44,11 @@ class WalletWrapper {
      * @returns {WalletWrapper}
      */
     static fromData(data) {
-        if (data.priv && !data.mnemonic) {
-            return new WalletWrapper(data.name, '', data.priv);
-        }
-        return new WalletWrapper(data.name, data.mnemonic, data.priv);
+        if (!data) return null;
+        if (data instanceof WalletWrapper) return data;
+        const priv = data.priv || data.privateKey;
+        const mnemonic = data.mnemonic || '';
+        return new WalletWrapper(data.name || 'Wallet', mnemonic, priv);
     }
 
     /**
@@ -97,6 +98,28 @@ class WalletWrapper {
 
         const tx = new Transaction({
             type: 'stake',
+            from: this.publicKey,
+            to: this.publicKey,
+            amount: amountNano,
+            data: '',
+            nonce: nonce
+        });
+
+        tx.sign(this.privateKey);
+        return tx;
+    }
+
+    /**
+     * Create an unstake transaction
+     * @param {string|number} amountOts 
+     * @param {number} nonce 
+     * @returns {Transaction}
+     */
+    createUnstake(amountOts, nonce) {
+        const amountNano = toNanoOts(amountOts);
+
+        const tx = new Transaction({
+            type: 'unstake',
             from: this.publicKey,
             to: this.publicKey,
             amount: amountNano,
