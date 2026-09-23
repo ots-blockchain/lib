@@ -1,4 +1,5 @@
 export const consts = {
+    CHAIN_ID: 'ots-mainnet-1',
     MAX_SEEN_MESSAGES: 128,
     REQUEST_TIMEOUT: 5000, // User network request timed out
     MAX_RETRIES: 3, // Reconnect retries
@@ -7,11 +8,27 @@ export const consts = {
     TICK_INTERVAL: 3000, // Voting tick
     BLOCK_TIMEOUT_MS: 12000, // The time after which the validator is excluded
     MAX_TXS_PER_BLOCK: 256,
+    MAX_MEMPOOL_TXS: 10000,
+    MAX_MEMPOOL_PER_SENDER: 64,
+    MAX_NONCE_GAP: 64,
+    MAX_BLOCK_BYTES: 4 * 1024 * 1024,
+    MAX_PACKET_BYTES: 1024 * 1024,
+    MAX_FUTURE_BLOCK_MS: 30000,
+    MAX_CONSENSUS_ROUND: 1000000,
+    MAX_PENDING_CONSENSUS: 256,
+    MAX_BLOCK_QUEUE: 256,
+    MAX_PEERS: 64,
+    MAX_MESSAGES_PER_SECOND: 200,
     MAX_SYNC_BATCH: 64,
     VARNAME_LENGTH_LIMIT: 256, // Maximal variables name in a smart-contract
-    MAX_CALL_DEPTH: 1024,
-    MAX_STRING_LENGTH: 1024 * 1024 * 64,
+    MAX_CALL_DEPTH: 128,
+    MAX_CONTRACT_CALL_DEPTH: 32,
+    MAX_STRING_LENGTH: 1024 * 1024,
     MAX_DATA_LENGTH: 2 ** 18,
+    MAX_STORAGE_KEY_LENGTH: 256,
+    MAX_STORAGE_VALUE_BYTES: 2 ** 18,
+    MAX_TX_GAS: 1000000000n,
+    MAX_BLOCK_GAS: 16000000000n,
     OPCODE_PRICE: 100000n, // 0.0001 OTS
     SLASH_AMOUNT: 10000000000n, // 10 OTS
     GENESIS_ADDRESSES: [

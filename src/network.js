@@ -1,4 +1,5 @@
 import CryptoUtils from './crypto.js';
+import { consts } from './config.js';
 
 const hexToUint8 = (hex) => new Uint8Array(hex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
 const uint8ToHex = (bytes) => bytes.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
@@ -30,6 +31,7 @@ export default class Network {
         const encoder = new TextEncoder();
 
         const typeBuf = encoder.encode(packet.data.type);
+        if (typeBuf.length > 255) throw new Error('Packet type is too long');
         const payloadBuf = encoder.encode(CryptoUtils.serializeWithBigInt(packet.data.payload || {}));
         const fromBuf = hexToUint8(packet.data.from);
         const msgIdBuf = hexToUint8(packet.data.message_id);
@@ -52,7 +54,9 @@ export default class Network {
 
     static async deserialize(cbuffer) {
         try {
+            if (!(cbuffer instanceof Uint8Array) || cbuffer.byteLength > consts.MAX_PACKET_BYTES) return null;
             const buffer = await this.decompress(cbuffer);
+            if (buffer.byteLength < 130 || buffer.byteLength > consts.MAX_PACKET_BYTES) return null;
             const decoder = new TextDecoder();
             let offset = 0;
 
@@ -61,6 +65,7 @@ export default class Network {
             const message_id = uint8ToHex(buffer.slice(offset, offset += 32));
 
             const typeLen = buffer[offset++];
+            if (!typeLen || offset + typeLen > buffer.length) return null;
             const type = decoder.decode(buffer.slice(offset, offset += typeLen));
             const payload = CryptoUtils.deserializeWithBigInt(decoder.decode(buffer.slice(offset)));
 

@@ -1,4 +1,5 @@
 import CryptoUtils from './crypto.js';
+import { consts } from './config.js';
 
 export class Transaction {
     /**
@@ -31,6 +32,7 @@ export class Transaction {
 
     getHash() {
         const payload = {
+            chainId: consts.CHAIN_ID,
             type: this.type, from: this.from, to: this.to,
             amount: this.amount, data: this.data, nonce: this.nonce,
             timestamp: this.timestamp, gasLimit: this.gasLimit
@@ -56,12 +58,20 @@ export class Transaction {
     }
 
     isValid() {
+        if (!['transfer', 'deploy', 'call', 'stake', 'unstake'].includes(this.type)) return false;
         if (!this.signature) return false;
+        if (typeof this.amount !== 'bigint' || typeof this.gasLimit !== 'bigint') return false;
         if (this.amount < 0n) return false;
-        if (this.gasLimit < 0n) return false;
-        if (this.nonce < 0) return false;
+        if (this.gasLimit < 0n || this.gasLimit > consts.MAX_TX_GAS) return false;
+        if (!Number.isSafeInteger(this.nonce) || this.nonce < 0) return false;
+        if (!Number.isSafeInteger(this.timestamp) || this.timestamp < 0) return false;
+        if (typeof this.data !== 'string' || this.data.length > consts.MAX_DATA_LENGTH) return false;
         if (!CryptoUtils.isValidPublicKey(this.from)) return false;
-        return CryptoUtils.verify(this.signature, this.getHash(), this.from);
+        try {
+            return CryptoUtils.verify(this.signature, this.getHash(), this.from);
+        } catch {
+            return false;
+        }
     }
 }
 
@@ -108,7 +118,7 @@ export class Block {
         const txHashes = this.body.map(tx => tx.getHash()).join('');
         const { signatures, ...unsignedHeader } = this.header;
         return CryptoUtils.hash(
-            CryptoUtils.serializeWithBigInt(unsignedHeader) + txHashes
+            consts.CHAIN_ID + ':' + CryptoUtils.serializeWithBigInt(unsignedHeader) + txHashes
         );
     }
 
@@ -126,6 +136,17 @@ export class Block {
     }
 
     isValid(prevBlock, activeValidatorsMap = null) {
+        if (!Number.isSafeInteger(this.header.index) || this.header.index < 1) return false;
+        if (!Number.isSafeInteger(this.header.timestamp) || this.header.timestamp <= prevBlock.header.timestamp) return false;
+        if (!Number.isSafeInteger(this.header.round) || this.header.round < 0 || this.header.round > consts.MAX_CONSENSUS_ROUND) return false;
+        if (!CryptoUtils.isValidPublicKey(this.header.validator)) return false;
+        if (typeof this.header.stateRoot !== 'string' || !/^[0-9a-f]{64}$/.test(this.header.stateRoot)) return false;
+        if (!Array.isArray(this.body) || this.body.length > consts.MAX_TXS_PER_BLOCK) return false;
+        let declaredGas = 0n;
+        for (const tx of this.body) {
+            declaredGas += tx.type === 'call' ? (tx.gasLimit > 0n ? tx.gasLimit : tx.amount) : 0n;
+            if (declaredGas > consts.MAX_BLOCK_GAS) return false;
+        }
         if (this.header.index !== prevBlock.header.index + 1) return false;
         if (this.header.prevHash !== prevBlock.getHash()) return false;
 
@@ -139,6 +160,7 @@ export class Block {
             const signingHash = this.getSigningHash();
             const validVoters = new Set();
 
+            if (!Array.isArray(this.header.signatures) || this.header.signatures.length > Object.keys(activeValidatorsMap).length) return false;
             for (const sigObj of this.header.signatures) {
                 if (!activeValidatorsMap[sigObj.validator]) continue;
                 if (validVoters.has(sigObj.validator)) continue;
